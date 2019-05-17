@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
 using System.IO;
-using Newtonsoft.Json;
 
 namespace Chan.Net.JsonModel
 {
@@ -8,10 +7,10 @@ namespace Chan.Net.JsonModel
     {
         public static T Deserialize<T>(Stream json)
         {
-            using (StreamReader sr = new StreamReader(json))
+            using (var sr = new StreamReader(json))
             using (JsonReader reader = new JsonTextReader(sr))
             {
-                JsonSerializer ser = new JsonSerializer();
+                var ser = new JsonSerializer();
 
                 return ser.Deserialize<T>(reader);
             }

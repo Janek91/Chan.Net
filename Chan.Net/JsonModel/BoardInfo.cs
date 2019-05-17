@@ -1,13 +1,7 @@
-﻿using System.Collections.Generic;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace Chan.Net.JsonModel
 {
-    public class BoardListModel
-    {
-        public List<BoardInfo> boards;
-    }
-
     public class BoardInfo
     {
         [JsonProperty("board")]
@@ -57,17 +51,5 @@ namespace Chan.Net.JsonModel
 
         [JsonProperty("math_tags")]
         public bool MathTagsEnabled { get; set; }
-    }
-
-    public class CooldownInfo
-    {
-        [JsonProperty("threads")]
-        public int Thread { get; set; }
-
-        [JsonProperty("replies")]
-        public int Reply { get; set; }
-
-        [JsonProperty("images")]
-        public int Images { get; set; }
     }
 }

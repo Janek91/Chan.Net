@@ -33,16 +33,18 @@ namespace Chan.Net.Captchas
         public static async Task<LegacyCaptcha> RequestAsync()
         {
             const string googleUri = @"http://www.google.com/recaptcha/api/challenge?k=6Ldp2bsSAAAAAAJ5uyx_lx34lJeEpTLVkP5k04qc";
-            string keyOut = String.Empty;
-            string javascriptResp = String.Empty;
+            string keyOut = string.Empty;
+            string javascriptResp = string.Empty;
 
             javascriptResp = await Internet.DownloadString(googleUri);
 
-            Regex rx = new Regex(@"challenge\s*:\s*'(.*)',", RegexOptions.IgnoreCase);
-            var match = rx.Match(javascriptResp);
+            var rx = new Regex(@"challenge\s*:\s*'(.*)',", RegexOptions.IgnoreCase);
+            Match match = rx.Match(javascriptResp);
 
             if (match.Success)
+            {
                 keyOut = match.Groups[1].Value;
+            }
 
             return new LegacyCaptcha()
             {

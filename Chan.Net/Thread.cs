@@ -1,12 +1,11 @@
-﻿using System;
+﻿using Chan.Net.Captchas;
+using Chan.Net.JsonModel;
+using System;
 using System.Collections.Generic;
-using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using Chan.Net.Captchas;
-using Chan.Net.JsonModel;
-using Newtonsoft.Json.Linq;
 
 namespace Chan.Net
 {
@@ -18,14 +17,14 @@ namespace Chan.Net
             Board = parent;
             RefreshRate = 10;
             UseCache = true;
-            
+
             AutoUpdater = new AutoUpdater(this);
         }
 
         private DateTime _lastRefresh;
         private ThreadModel _cachedJson;
         private uint _lastId;
-        
+
         public Board Board { get; }
         public AutoUpdater AutoUpdater { get; }
 
@@ -39,7 +38,7 @@ namespace Chan.Net
         {
             uint id = await PostManager.CreatePost(Board, this, message, captcha, args).ConfigureAwait(false);
 
-            Post newPost =  new Post()
+            var newPost = new Post()
             {
                 Thread = this,
                 Message = message,
@@ -56,7 +55,7 @@ namespace Chan.Net
         {
             return CreatePostAsync(message, captcha, args).GetAwaiter().GetResult();
         }
-        
+
         public async Task SetLastViewedNowAsync()
         {
             _lastId = (await GetPostsAsync().ConfigureAwait(false)).LastOrDefault()?.PostNumber ?? 0;
@@ -94,12 +93,12 @@ namespace Chan.Net
             if (!UseCache || _cachedJson == null || DateTime.Now.Subtract(_lastRefresh).TotalSeconds > RefreshRate)
             {
                 _lastRefresh = DateTime.Now;
-                HttpWebRequest req =
+                var req =
                     WebRequest.Create(string.Format("https://a.4cdn.org/{0}/thread/{1}.json", Board.BoardId,
                         PostNumber)) as HttpWebRequest;
-                HttpWebResponse resp = await req.GetResponseAsync().ConfigureAwait(false) as HttpWebResponse;
+                var resp = await req.GetResponseAsync().ConfigureAwait(false) as HttpWebResponse;
 
-                using (var stream = resp.GetResponseStream())
+                using (Stream stream = resp.GetResponseStream())
                 {
                     data = JsonDeserializer.Deserialize<ThreadModel>(stream);
                 }
@@ -111,25 +110,25 @@ namespace Chan.Net
 
             return data.Posts.Select(post => new Post()
             {
-                PostNumber = unchecked((uint) post.no),
+                PostNumber = unchecked((uint)post.No),
                 Thread = this,
-                Name = post.name,
-                Message = post.com == null ? null : PostManager.CleanPostMessage(post.com),
-                Image = string.IsNullOrEmpty(post.ext) ? null : new PostedImage(Board.BoardId, post.tim, post.ext)
+                Name = post.Name,
+                Message = post.Com == null ? null : PostManager.CleanPostMessage(post.Com),
+                Image = string.IsNullOrEmpty(post.Ext) ? null : new PostedImage(Board.BoardId, post.Tim, post.Ext)
                 {
-                    Filename = post.filename,
-                    Height = post.h,
-                    Width = post.w,
-                    Filesize = post.fsize,
-                    Md5Hash = post.md5,
+                    Filename = post.Filename,
+                    Height = post.H,
+                    Width = post.W,
+                    Filesize = post.Fsize,
+                    Md5Hash = post.MD5,
                 },
-                TimeCreated = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Add(TimeSpan.FromSeconds(post.time)),
-                Id = post.id,
-                Country = post.country,
-                CountryName = post.country_name,
-                EpochTimeCreated = post.time,
-                Trip = post.trip,
-                Subject = WebUtility.HtmlDecode(post.sub ?? ""),
+                TimeCreated = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Add(TimeSpan.FromSeconds(post.Time)),
+                Id = post.Id,
+                Country = post.Country,
+                CountryName = post.CountryName,
+                EpochTimeCreated = post.Time,
+                Trip = post.Trip,
+                Subject = WebUtility.HtmlDecode(post.Sub ?? ""),
             });
         }
 
@@ -141,7 +140,9 @@ namespace Chan.Net
         public async Task<IEnumerable<Post>> GetNewPostsAsync(bool ignoreCache = false)
         {
             if (ignoreCache)
+            {
                 _cachedJson = null;
+            }
 
             return (await GetPostsAsync().ConfigureAwait(false)).SkipWhile(p => p.PostNumber <= _lastId).Select(p =>
             {
@@ -158,7 +159,9 @@ namespace Chan.Net
         public async Task<IEnumerable<Post>> GetNewPostsAsync(uint lastId, bool ignoreCache = false)
         {
             if (ignoreCache)
+            {
                 _cachedJson = null;
+            }
 
             return (await GetNewPostsAsync().ConfigureAwait(false)).SkipWhile(p => p.PostNumber <= lastId);
         }

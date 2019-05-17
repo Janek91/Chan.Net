@@ -24,7 +24,7 @@ namespace Chan.Net
 
         public void Update(IEnumerable<Post> newPosts)
         {
-            foreach (var newReply in newPosts)
+            foreach (Post newReply in newPosts)
             {
                 if (newReply.Message.Contains(">>" + PostNumber))
                 {

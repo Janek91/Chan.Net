@@ -1,12 +1,11 @@
-﻿using System;
+﻿using Chan.Net.Captchas;
+using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.IO;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Chan.Net.Captchas;
 
 namespace Chan.Net
 {
@@ -14,7 +13,11 @@ namespace Chan.Net
     {
         public static string CleanPostMessage(string com)
         {
-            if (string.IsNullOrEmpty(com)) return com;
+            if (string.IsNullOrEmpty(com))
+            {
+                return com;
+            }
+
             com = com.Replace("<br>", "\n");
             com = Regex.Replace(com, "<.+?>", "");
             com = WebUtility.HtmlDecode(com).Trim();
@@ -33,39 +36,51 @@ namespace Chan.Net
             postData.Add("com", message);
 
             if (thread != null)
+            {
                 postData.Add("resto", thread.PostNumber.ToString());
+            }
 
             if (!string.IsNullOrEmpty(args.Options))
+            {
                 postData.Add("email", args.Options);
-             
+            }
+
             if (!string.IsNullOrEmpty(args.Password))
+            {
                 postData.Add("pwd", args.Password);
+            }
             else
             {
-                StringBuilder sb = new StringBuilder();
-                Random r = new Random();
+                var sb = new StringBuilder();
+                var r = new Random();
 
-                for (int i = 0; i < 15; i++)
+                for (var i = 0; i < 15; i++)
                 {
-                    sb.Append((char) (r.Next('a', 'z')));
+                    sb.Append((char)(r.Next('a', 'z')));
                 }
-            
+
                 postData.Add("pwd", sb.ToString());
             }
-            
+
             if (!captcha.Solved)
+            {
                 throw new CaptchaException();
-            
+            }
+
             if (args.File != null)
             {
-                string filename = "file";
+                var filename = "file";
                 if (!string.IsNullOrEmpty(args.Filename))
+                {
                     filename = args.Filename;
+                }
 
                 if (!mappings.ContainsKey(Path.GetExtension(filename).ToLower()))
+                {
                     throw new UnsupportedFiletypeException(Path.GetExtension(filename));
+                }
 
-                byte[] file = new byte[args.File.Length];
+                var file = new byte[args.File.Length];
 
                 await args.File.ReadAsync(file, 0, file.Length).ConfigureAwait(false);
 
@@ -74,23 +89,17 @@ namespace Chan.Net
                     mappings[Path.GetExtension(filename).ToLower()]));
             }
 
-            HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
+            var request = WebRequest.Create(url) as HttpWebRequest;
             request.CookieContainer = new CookieContainer();
 
-            
             string formDataBoundary = string.Format("----------{0:N}", Guid.NewGuid());
             byte[] formData = Internet.GetMultipartFormData(postData, formDataBoundary);
 
             request.Method = "POST";
             request.ContentType = "multipart/form-data; boundary=" + formDataBoundary;
 
-#if NET45
-            request.ContentLength = formData.Length;
-            request.UserAgent = Internet.UserAgent;
-#else
             request.Headers["Content-Length"] = formData.Length.ToString();
             request.Headers["User-Agent"] = Internet.UserAgent;
-#endif
 
             captcha.Authenticate(request, postData);
 
@@ -102,21 +111,27 @@ namespace Chan.Net
             var response = await request.GetResponseAsync() as HttpWebResponse;
 
             if (response.StatusCode == HttpStatusCode.NotFound)
+            {
                 throw new ThreadNotFoundException();
+            }
 
             using (var respStream = new StreamReader(response.GetResponseStream()))
             {
                 string text = respStream.ReadToEnd();
 
                 if (text.Contains("CAPTCHA"))
+                {
                     throw new CaptchaException();
+                }
 
                 if (text.Contains("banned") || text.Contains("warn"))
+                {
                     throw new BannedException();
+                }
 
                 try
                 {
-                    var postIdMatch = Regex.Match(text, "no:(\\d+)");
+                    Match postIdMatch = Regex.Match(text, "no:(\\d+)");
                     string postIdStr = postIdMatch.Groups[1].Captures[0].Value;
 
                     return uint.Parse(postIdStr);
@@ -143,25 +158,4 @@ namespace Chan.Net
                 {".webm", "video/webm"},
             };
     }
-
-    public class OptionalPostArgs
-    {
-        public OptionalPostArgs()
-        {
-            Name = "Anonymous";
-        }
-
-        public string Name;
-        public string Options;
-        public string Password;
-
-        public Stream File;
-        public string Filename;
-
-        public static OptionalPostArgs Default
-        {
-            get { return new OptionalPostArgs(); }
-        }
-    }
-
 }
